@@ -1,6 +1,6 @@
 import axios from 'axios'
 
-const baseURL = 'http://localhost:8080'
+const baseURL = 'https://qa-backend-production-a82f.up.railway.app'
 
 const instance = axios.create({
   baseURL,

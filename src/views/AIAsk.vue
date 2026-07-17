@@ -109,7 +109,7 @@ const sendQuestion = async () => {
   try {
     console.log('📤 发送请求:', question)
     
-    const response = await fetch('http://localhost:8080/api/ai/ask', {
+    const response = await fetch('https://qa-backend-production-a82f.up.railway.app/api/ai/ask', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -10,7 +10,7 @@
       </div>
     </div>
 
-    <!-- 功能网格 - 从 localStorage 读取 -->
+    <!-- 功能网格 - 从后端加载 -->
     <div class="grid-nav">
       <div 
         v-for="item in moduleList" 
@@ -97,13 +97,14 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
+import { get, post } from '@/utils/request'  // ✅ 添加 post
 
 const router = useRouter()
 const active = ref(0)
 const searchKeyword = ref('')
 const questionList = ref([])
 
-// ========== 模块数据（从 localStorage 读取） ==========
+// ========== 模块数据 ==========
 const moduleList = ref([])
 
 // 默认模块数据
@@ -123,7 +124,7 @@ const defaultModules = [
     icon: '➕', 
     name: '添加墙墙', 
     desc: '发布动态分享', 
-    path: '/add-wall',  // ✅ 改成 /add-wall
+    path: '/add-wall',
     views: 3210, 
     likes: 189,
     image: ''
@@ -160,19 +161,27 @@ const defaultModules = [
   }
 ]
 
-// 加载模块数据
-const loadModuleData = () => {
-  const saved = localStorage.getItem('campus_modules_data')
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved)
-      if (parsed.length > 0) {
-        moduleList.value = parsed
-        return
+// ✅ 从后端加载模块数据
+const loadModuleData = async () => {
+  try {
+    const res = await get('/api/module/list')
+    if (res && res.length > 0) {
+      moduleList.value = res
+      console.log('✅ 从后端加载模块数据:', moduleList.value)
+    } else {
+      moduleList.value = defaultModules
+      // 初始化默认数据到后端
+      try {
+        await post('/api/module/save', defaultModules)
+        console.log('✅ 默认模块已保存到后端')
+      } catch (error) {
+        console.error('❌ 保存默认模块失败:', error)
       }
-    } catch (e) {}
+    }
+  } catch (error) {
+    console.error('❌ 加载模块失败:', error)
+    moduleList.value = defaultModules
   }
-  moduleList.value = defaultModules
 }
 
 // ========== 二维码卡片数据 ==========
@@ -219,32 +228,23 @@ const openQRPopup = (item) => {
 // ========== 点击事件 ==========
 
 // 点击网格项
-// 点击网格项
 const handleGridClick = (item) => {
-  // ✅ 如果没有路径，或者路径是 '/' 或空，显示"即将上线"
   if (!item.path || item.path === '/' || item.path === '') {
     showToast('🚀 即将上线: ' + item.name)
     return
   }
   
-  // 判断外部链接
   if (item.path.startsWith('http')) {
     window.location.href = item.path
     return
   }
   
-  // 跳转内部页面
   router.push(item.path)
 }
 
-// 搜索
-const goToSearch = () => {
-  showToast('🔍 搜索功能')
-}
-
-// ✅ 右上角 ➕ - 跳转到添加墙墙页面
+// 右上角 ➕
 const addWall = () => {
-  router.push('/add-wall')  // 
+  router.push('/add-wall')
 }
 
 // 跳转详情

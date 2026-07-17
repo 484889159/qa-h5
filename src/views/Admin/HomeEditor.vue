@@ -91,6 +91,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
+import { get, post } from '@/utils/request'  // ✅ 添加导入
 
 const router = useRouter()
 const password = ref('')
@@ -101,15 +102,17 @@ const rememberMe = ref(true)
 
 // ✅ 网格数据
 const gridItems = ref([])
+
+// 默认数据
 const defaultGrid = [
   { id: 1, name: '校园百科', icon: '🏫', path: '/' },
-  { id: 2, name: '添加墙墙', icon: '➕', path: '/publish' },
+  { id: 2, name: '添加墙墙', icon: '➕', path: '/add-wall' },
   { id: 3, name: '众顺达驾校', icon: '🚗', path: '' },
   { id: 4, name: '核猫档案', icon: '📋', path: '/mine' },
   { id: 5, name: '查课表', icon: '📅', path: '/ai-ask' }
 ]
 
-// 二维码数据
+// 二维码数据（暂时保留 localStorage）
 const cardList = ref([])
 
 const defaultCard = {
@@ -122,26 +125,29 @@ const defaultCard = {
   imageList: []
 }
 
-// ✅ 加载数据 - 使用 campus_modules_data
-const loadData = () => {
-  // 加载网格 - 统一使用 campus_modules_data
-  const savedGrid = localStorage.getItem('campus_modules_data')
-  if (savedGrid) {
-    try {
-      const parsed = JSON.parse(savedGrid)
-      if (parsed.length > 0) {
-        gridItems.value = parsed
-      } else {
-        gridItems.value = defaultGrid
-      }
-    } catch (e) {
+// ✅ 从后端加载数据
+const loadData = async () => {
+  try {
+    // 从后端加载模块数据
+    const res = await get('/api/module/list')
+    if (res && res.length > 0) {
+      gridItems.value = res
+    } else {
       gridItems.value = defaultGrid
+      // 初始化默认数据
+      try {
+        await post('/api/module/save', defaultGrid)
+        console.log('✅ 默认模块已保存到后端')
+      } catch (error) {
+        console.error('❌ 保存默认模块失败:', error)
+      }
     }
-  } else {
+  } catch (error) {
+    console.error('❌ 加载模块失败:', error)
     gridItems.value = defaultGrid
   }
 
-  // 加载卡片
+  // 卡片数据（暂时保留 localStorage）
   const savedCards = localStorage.getItem('home_cards_data')
   if (savedCards) {
     try {
@@ -245,17 +251,18 @@ const uploadCardImage = (file, index) => {
   reader.readAsDataURL(file.file)
 }
 
-// ✅ 保存所有 - 统一使用 campus_modules_data
-const saveAll = () => {
+// ✅ 保存到后端
+const saveAll = async () => {
   saving.value = true
   try {
-    // 保存网格数据 - 使用 campus_modules_data
-    localStorage.setItem('campus_modules_data', JSON.stringify(gridItems.value))
-    // 保存卡片数据
+    // 保存网格数据到后端
+    await post('/api/module/save', gridItems.value)
+    // 卡片数据保存到 localStorage
     const dataToSave = cardList.value.map(({ imageList, ...rest }) => rest)
     localStorage.setItem('home_cards_data', JSON.stringify(dataToSave))
     showToast('✅ 全部保存成功！')
-  } catch (e) {
+  } catch (error) {
+    console.error('❌ 保存失败:', error)
     showToast('❌ 保存失败')
   } finally {
     saving.value = false

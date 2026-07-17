@@ -1,6 +1,5 @@
 <template>
   <div class="ai-ask-page">
-    <!-- 头部 -->
     <van-nav-bar
       title="新生智能问答"
       left-text="返回"
@@ -8,7 +7,6 @@
       @click-left="$router.back()"
     />
 
-    <!-- 聊天区域 -->
     <div class="chat-area" ref="chatAreaRef">
       <div 
         v-for="(msg, index) in messages" 
@@ -25,7 +23,6 @@
         </div>
       </div>
       
-      <!-- 热门问题 -->
       <div v-if="messages.length === 1" class="hot-questions">
         <div class="title">💡 热门问题</div>
         <div 
@@ -39,7 +36,6 @@
       </div>
     </div>
 
-    <!-- 底部输入框 -->
     <div class="input-bar">
       <van-field
         v-model="inputQuestion"
@@ -65,6 +61,7 @@
 <script setup>
 import { ref, nextTick } from 'vue'
 import { showToast } from 'vant'
+import { post } from '@/utils/request'  // ✅ 使用 request.js
 
 const chatAreaRef = ref(null)
 const inputQuestion = ref('')
@@ -87,7 +84,6 @@ const hotQuestions = ref({
   '食堂好吃吗？': ''
 })
 
-// 发送问题到后端 AI
 const sendQuestion = async () => {
   const question = inputQuestion.value.trim()
   if (!question) {
@@ -109,21 +105,15 @@ const sendQuestion = async () => {
   try {
     console.log('📤 发送请求:', question)
     
-    const response = await fetch('https://qa-backend-production-a82f.up.railway.app/api/ai/ask', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ question })
-    })
-    
-    console.log('📥 响应状态:', response.status)
-    const result = await response.json()
+    // ✅ 使用 request.js 的 post 方法
+    const result = await post('/api/ai/ask', { question })
     console.log('📥 响应数据:', result)
     
     let answer = ''
-    if (result.code === 200 && result.data) {
+    if (result.data && result.data.answer) {
       answer = result.data.answer
+    } else if (result.answer) {
+      answer = result.answer
     } else {
       answer = result.msg || 'AI 暂时无法回答，请稍后再试'
     }
@@ -137,7 +127,7 @@ const sendQuestion = async () => {
     console.error('❌ 请求失败:', error)
     messages.value.push({
       role: 'ai',
-      content: '❌ 连接失败，请检查后端是否启动 (http://localhost:8080)',
+      content: '❌ 请求失败，请检查网络连接。错误: ' + error.message,
       time: getCurrentTime()
     })
   } finally {

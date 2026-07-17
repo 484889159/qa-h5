@@ -39,7 +39,7 @@ import { showToast } from 'vant'
 
 const router = useRouter()
 
-// ✅ 二维码图片路径（可替换成你自己的）
+// ✅ 二维码图片路径
 const qrImage = ref('/qrcode.png')
 
 // 保存二维码
